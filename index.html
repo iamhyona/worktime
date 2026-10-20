@@ -29,7 +29,8 @@ header { position:sticky; top:0; z-index:10; background:var(--bg); padding:calc(
 .tabs button.on { background:var(--txt); color:#fff; box-shadow:none; }
 .mon { display:flex; align-items:center; gap:6px; margin:14px 2px 12px; }
 .mon b { flex:1; font-size:20px; font-weight:800; }
-.mon button { width:32px; height:32px; border:0; border-radius:50%; background:#fff; font-size:16px; color:var(--sub); }
+.mon button { width:32px; height:32px; border:0; border-radius:50%; background:#fff; color:var(--sub); display:inline-flex; align-items:center; justify-content:center; padding:0; }
+.mon button svg { width:16px; height:16px; display:block; }
 .mon button:disabled { opacity:.3; }
 .card { background:#fff; border-radius:20px; padding:16px 16px 10px; margin-bottom:12px; }
 .ch { display:flex; align-items:baseline; gap:8px; margin-bottom:8px; }
@@ -129,7 +130,7 @@ function pad(n) { return (n < 10 ? '0' : '') + n; }
 function today() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 var WK = ['일', '월', '화', '수', '목', '금', '토'];
 function wd(d) { var a = d.split('-'); return new Date(+a[0], a[1] - 1, +a[2]).getDay(); }
-function md(d) { return d.slice(5).replace('-', '/'); }
+function md(d) { return d ? String(d).slice(5).replace('-', '/') : '–'; }
 function hm(v) { var m = String(v || '').match(/^(\d{1,2}):(\d{2})/); return m ? pad(+m[1]) + ':' + m[2] : ''; }
 function hours(t) { var m = String(t || '').match(/(\d+)시간\s*(\d+)?분?/); return m ? +m[1] + (+(m[2] || 0)) / 60 : 0; }
 function toast(t) { var el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(function () { el.style.display = 'none'; }, 2200); }
@@ -176,7 +177,7 @@ function shell(inner) {
     '<button class="ib" id="rf" aria-label="새로고침">' + IC_RF + '</button><button class="ib" id="lo" aria-label="나가기">' + IC_OUT + '</button></div>';
   if (me.admin && T.length > 1) h += '<div class="tabs" id="tT">' + [ALL].concat(T).map(function (t) { return '<button data-t="' + esc(t) + '" class="' + (t === S.team ? 'on' : '') + '">' + esc(t) + '</button>'; }).join('') + '</div>';
   h += '<div class="tabs" id="tP"><button data-p="" class="' + (S.who ? '' : 'on') + '">' + (S.team === ALL ? '모두 보기' : '팀 전체') + '</button>' + P.map(function (p) { return '<button data-p="' + p.id + '" class="' + (p.id === S.who ? 'on' : '') + '">' + esc(p.name) + '</button>'; }).join('') + '</div></header>';
-  h += '<div class="wrap"><div class="mon"><b>' + (S.ym === today().slice(0, 7) ? today().replace(/-/g, '.') + ' <small style="font-size:15px;color:var(--mute);font-weight:700">' + WK[wd(today())] + '</small>' : S.ym.replace('-', '.')) + '</b><button id="mP">‹</button><button id="mN">›</button></div>' + inner + '</div>';
+  h += '<div class="wrap"><div class="mon"><b>' + (S.ym === today().slice(0, 7) ? today().replace(/-/g, '.') + ' <small style="font-size:15px;color:var(--mute);font-weight:700">' + WK[wd(today())] + '</small>' : S.ym.replace('-', '.')) + '</b><button id="mP" aria-label="이전 달"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button id="mN" aria-label="다음 달"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>' + inner + '</div>';
   $('#app').innerHTML = h;
   $('#rf').onclick = function () { S.cache = {}; S.teamCache = {}; render(); toast('새로 불러왔어요'); };
   $('#lo').onclick = function () { ls.set('wt:pin', null); S.pin = ''; S.me = null; showLogin(); };
@@ -212,7 +213,7 @@ function teamList() { return S.team === ALL ? teamsOf() : [S.team]; }
 function weekLabels(n) {
   var L = []; for (var i = 0; i < n; i++) L.push((i + 1) + '주');
   var ids = people().map(function (p) { return p.id; });
-  for (var j = 0; j < ids.length; j++) { var d = S.cache[ids[j] + '|' + S.ym]; if (d && d.ym === S.ym && d.weeks && d.weeks.length) { d.weeks.forEach(function (w, i) { if (i < n && w.days && w.days[0]) L[i] = md(w.days[0].d); }); break; } }
+  for (var j = 0; j < ids.length; j++) { var d = S.cache[ids[j] + '|' + S.ym]; if (d && d.ym === S.ym && d.weeks && d.weeks.length) { d.weeks.forEach(function (w, i) { var f = (w.days || []).filter(function (x) { return x.d; })[0]; if (i < n && f) L[i] = md(f.d); }); break; } }
   return L;
 }
 function renderTeam() {
@@ -274,13 +275,14 @@ function renderPerson() {
     return;
   }
   var t = today(), lab = ['부서장', '본부장', '인사팀'];
-  var h = '<div class="appr">' + lab.map(function (l, i) { return '<button data-ap="' + i + '" class="' + (d.appr[i] ? 'on' : '') + '"' + (S.me.admin ? '' : ' disabled') + '>' + (d.appr[i] ? '✓ ' : '') + l + ' 결재</button>'; }).join('') + '</div>';
+  var h = '<div class="appr">' + lab.map(function (l, i) { return '<button data-ap="' + i + '" class="' + (d.appr[i] ? 'on' : '') + '"' + (S.me.admin ? '' : ' disabled') + '>' + (d.appr[i] ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:3px"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '') + l + ' 결재</button>'; }).join('') + '</div>';
   if (d.ym !== S.ym || !d.weeks.length) h += '<div class="card"><div class="empty">' + S.ym.replace('-', '년 ') + '월 근무표 탭이 없어요</div></div>';
   else h += d.weeks.map(function (w, wi) {
-    var a = w.days[0].d, b = w.days[6].d;
-    return '<div class="card"><div class="ch"><b>' + md(a) + ' – ' + md(b) + '</b><small>' + (w.ot && hours(w.ot) ? '연장 ' + esc(w.ot) : '') + (hours(w.over) ? ' · 52시간 초과 ' + esc(w.over) : '') + '</small>' + pillFor(w.tot, w.over) + '</div>' +
+    var dd = w.days.filter(function (x) { return x.d; }), a = dd.length ? dd[0].d : '', b = dd.length ? dd[dd.length - 1].d : '';
+    return '<div class="card"><div class="ch"><b>' + (a ? md(a) + ' – ' + md(b) : '–') + '</b><small>' + (w.ot && hours(w.ot) ? '연장 ' + esc(w.ot) : '') + (hours(w.over) ? ' · 52시간 초과 ' + esc(w.over) : '') + '</small>' + pillFor(w.tot, w.over) + '</div>' +
       '<div class="dh"><span>날짜</span><span>출근</span><span>퇴근</span><span>저녁</span><span>실 근무</span></div>' +
       w.days.map(function (x, k) {
+        if (!x.d) return '<div class="day off"><span class="dw">–</span><span class="c">–</span><span class="c">–</span><span class="c dn">–</span><span class="c wk">–</span></div>';
         var dw = wd(x.d), e = !(x.i || x.o);
         return '<button class="day' + (x.d === t ? ' today' : '') + (e ? ' off' : '') + '" data-w="' + wi + '" data-k="' + k + '"><span class="dw' + (dw === 0 || dw === 6 ? ' we' : '') + '">' + md(x.d) + ' ' + WK[dw] + '</span>' +
           '<span class="c">' + (hm(x.i) || '–') + '</span><span class="c">' + (hm(x.o) || '–') + '</span><span class="c dn">' + (x.dn ? x.dn + '분' : '–') + '</span><span class="c wk">' + (x.w ? esc(x.w.replace('시간', 'h ').replace('분', 'm').replace(' 00m', '')) : '–') + '</span>' +
