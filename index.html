@@ -65,6 +65,22 @@ header { position:sticky; top:0; z-index:10; background:var(--bg); padding:calc(
 .seg { display:inline-flex; background:#e5e8eb; border-radius:999px; padding:3px; margin-right:4px; }
 .seg button { width:auto !important; height:26px !important; border-radius:999px !important; padding:0 12px !important; background:transparent !important; font-size:13px; font-weight:700; color:var(--mute) !important; }
 .seg button.on { background:#fff !important; color:var(--txt) !important; }
+.hg { display:grid; grid-template-columns:38px repeat(7, minmax(0,1fr)); gap:3px; margin:4px -4px 6px; }
+.hl, .hc { display:flex; flex-direction:column; border:0; background:none; padding:0; font-variant-numeric:tabular-nums; letter-spacing:-0.04em; }
+.hl span, .hc span { height:30px; display:flex; align-items:center; justify-content:center; font-size:12px; }
+.hl span { justify-content:flex-start; font-size:11px; font-weight:700; color:var(--mute); letter-spacing:0; }
+.hc { border-radius:10px; background:var(--chip); }
+.hc .hd0 { height:40px; flex-direction:column; gap:1px; position:relative; font-size:10.5px; font-weight:700; color:var(--mute); }
+.hl .hd0 { height:40px; }
+.hc .hd0 b { font-size:12px; font-weight:800; color:var(--sub); }
+.hc .hd0.we b, .hc .hd0.we { color:var(--red); }
+.hc .hd0 u { position:absolute; top:4px; right:4px; width:4px; height:4px; border-radius:50%; background:var(--org); }
+.hc .t { font-size:12.5px; font-weight:800; color:var(--txt); }
+.hc .s { font-size:11.5px; font-weight:600; color:var(--sub); }
+.hc.off { background:#f9fafb; } .hc.off span, .hc.off .t, .hc.off .s { color:var(--faint); font-weight:500; }
+.hc .hd0 b { font-size:11.5px; }
+.hc.today { box-shadow:inset 0 0 0 1.5px var(--blue); }
+.hrs { font-size:12px; color:var(--mute); line-height:1.5; padding:6px 2px 2px; white-space:pre-line; } .hrs b { color:var(--sub); margin-right:6px; }
 .cal { padding:12px 10px 8px; }
 .cwh, .cwk { display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:3px; }
 .cwh { font-size:11px; font-weight:700; color:var(--mute); text-align:center; padding-bottom:6px; }
@@ -343,14 +359,15 @@ function renderPerson() {
   else h += d.weeks.map(function (w, wi) {
     var dd = w.days.filter(function (x) { return x.d; }), a = dd.length ? dd[0].d : '', b = dd.length ? dd[dd.length - 1].d : '';
     return '<div class="card"><div class="ch"><b>' + (a ? md(a) + ' – ' + md(b) : '–') + '</b><small>' + (w.ot && hours(w.ot) ? '연장 ' + esc(w.ot) : '') + (hours(w.over) ? ' · 52시간 초과 ' + esc(w.over) : '') + '</small>' + pillFor(w.tot, w.over) + '</div>' +
-      '<div class="dh"><span>날짜</span><span>출근</span><span>퇴근</span><span>저녁</span><span>실 근무</span></div>' +
+      '<div class="hg"><div class="hl"><span class="hd0">날짜</span><span>출근</span><span>퇴근</span><span>저녁</span><span>실 근무</span></div>' +
       w.days.map(function (x, k) {
-        if (!x.d) return '<div class="day off"><span class="dw">–</span><span class="c">–</span><span class="c">–</span><span class="c dn">–</span><span class="c wk">–</span></div>';
+        if (!x.d) return '<div class="hc off"><span class="hd0">–</span><span>–</span><span>–</span><span>–</span><span>–</span></div>';
         var dw = wd(x.d), e = !(x.i || x.o);
-        return '<button class="day' + (x.d === t ? ' today' : '') + (e ? ' off' : '') + '" data-w="' + wi + '" data-k="' + k + '"><span class="dw' + (dw === 0 || dw === 6 ? ' we' : '') + '">' + md(x.d) + ' ' + WK[dw] + '</span>' +
-          '<span class="c">' + (hm(x.i) || '–') + '</span><span class="c">' + (hm(x.o) || '–') + '</span><span class="c dn">' + (x.dn ? x.dn + '분' : '–') + '</span><span class="c wk">' + (x.w ? esc(x.w.replace('시간', 'h ').replace('분', 'm').replace(' 00m', '')) : '–') + '</span>' +
-          (x.rs ? '<span class="rs">' + esc(x.rs) + '</span>' : '') + '</button>';
-      }).join('') + '</div>';
+        return '<button class="hc' + (x.d === t ? ' today' : '') + (e ? ' off' : '') + '" data-w="' + wi + '" data-k="' + k + '">' +
+          '<span class="hd0' + (dw === 0 || dw === 6 ? ' we' : '') + '"><b>' + md(x.d) + '</b>' + WK[dw] + (x.rs ? '<u></u>' : '') + '</span>' +
+          '<span class="t">' + (hm(x.i) || '–') + '</span><span class="t">' + (hm(x.o) || '–') + '</span><span class="s">' + (x.dn ? x.dn + '분' : '–') + '</span><span class="s">' + (x.w ? esc(fmtH(x.w)) : '–') + '</span></button>';
+      }).join('') + '</div>' +
+      w.days.filter(function (x) { return x.d && x.rs; }).map(function (x) { return '<div class="hrs"><b>' + md(x.d) + ' ' + WK[wd(x.d)] + '</b>' + esc(x.rs) + '</div>'; }).join('') + '</div>';
   }).join('');
   h += '<p class="note">퇴근이 자정을 넘기면 24:00, 25:30 처럼 적어 주세요. 점심·휴게 1시간은 시트에서 자동으로 빠져요. 연차·공휴일은 비워 두세요. 월이 걸친 주는 목요일이 속한 달에 있어요.</p>';
   shell(h);
