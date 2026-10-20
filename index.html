@@ -176,7 +176,7 @@ function shell(inner) {
     '<button class="ib" id="rf" aria-label="새로고침">' + IC_RF + '</button><button class="ib" id="lo" aria-label="나가기">' + IC_OUT + '</button></div>';
   if (me.admin && T.length > 1) h += '<div class="tabs" id="tT">' + [ALL].concat(T).map(function (t) { return '<button data-t="' + esc(t) + '" class="' + (t === S.team ? 'on' : '') + '">' + esc(t) + '</button>'; }).join('') + '</div>';
   h += '<div class="tabs" id="tP"><button data-p="" class="' + (S.who ? '' : 'on') + '">' + (S.team === ALL ? '모두 보기' : '팀 전체') + '</button>' + P.map(function (p) { return '<button data-p="' + p.id + '" class="' + (p.id === S.who ? 'on' : '') + '">' + esc(p.name) + '</button>'; }).join('') + '</div></header>';
-  h += '<div class="wrap"><div class="mon"><b>' + S.ym.replace('-', '.') + '</b><button id="mP">‹</button><button id="mN">›</button></div>' + inner + '</div>';
+  h += '<div class="wrap"><div class="mon"><b>' + (S.ym === today().slice(0, 7) ? today().replace(/-/g, '.') + ' <small style="font-size:15px;color:var(--mute);font-weight:700">' + WK[wd(today())] + '</small>' : S.ym.replace('-', '.')) + '</b><button id="mP">‹</button><button id="mN">›</button></div>' + inner + '</div>';
   $('#app').innerHTML = h;
   $('#rf').onclick = function () { S.cache = {}; S.teamCache = {}; render(); toast('새로 불러왔어요'); };
   $('#lo').onclick = function () { ls.set('wt:pin', null); S.pin = ''; S.me = null; showLogin(); };
@@ -199,15 +199,14 @@ function wkCell(w) {
 /* 출퇴근: 오늘 기록, 없으면 이번 달 가장 최근 근무일 */
 function lastIO(d) {
   var t = today(), best = null;
-  (d.weeks || []).forEach(function (w) { (w.days || []).forEach(function (x) { if ((x.i || x.o) && x.d <= t && x.d.slice(0, 7) === d.ym && (!best || x.d > best.d)) best = x; }); });
+  (d.weeks || []).forEach(function (w) { (w.days || []).forEach(function (x) { if (x.d === t && (x.i || x.o)) best = x; }); });
   return best;
 }
 function ioHtml(id) {
   var d = S.cache[id + '|' + S.ym];
   if (!d) return { t: '···', dt: '', e: 1 };
-  if (d.ym !== S.ym) return { t: '–', dt: '', e: 1 };
-  var x = lastIO(d); if (!x) return { t: '기록 없음', dt: '', e: 1 };
-  return { t: (hm(x.i) || '–') + '–' + (hm(x.o) || '–'), dt: x.d === today() ? '' : md(x.d), e: 0 };
+  var x = lastIO(d); if (!x) return { t: '–', dt: '', e: 1 };
+  return { t: (hm(x.i) || '–') + '–' + (hm(x.o) || '–'), dt: '', e: 0 };
 }
 function teamList() { return S.team === ALL ? teamsOf() : [S.team]; }
 function weekLabels(n) {
@@ -243,7 +242,7 @@ function renderTeam() {
             '<span class="ap">' + [0, 1, 2].map(function (i) { return '<i class="dot' + (p.appr && p.appr[i] ? ' on' : '') + '"></i>'; }).join('') + '</span></button>';
         }).join('') : '<div class="empty">' + S.ym.replace('-', '년 ').replace(/$/, '월') + ' 근무표 탭이 없어요</div>') + '</div>';
   }).join('');
-  h += '<p class="note">주 칸은 그 주 총 근무시간이에요(48시간 넘으면 주황, 52시간 넘으면 빨강). 출근–퇴근은 오늘 기록이고, 오늘 기록이 없으면 이름 옆 날짜의 기록이에요. 파란 점은 결재(부서장 · 본부장 · 인사팀)예요.</p>';
+  h += '<p class="note">주 칸은 그 주 총 근무시간이에요(48시간 넘으면 주황, 52시간 넘으면 빨강). 이름 밑 시각은 오늘(' + md(today()) + ') 출근–퇴근이에요. 파란 점은 결재(부서장 · 본부장 · 인사팀)예요.</p>';
   shell(h);
   $$('[data-go]').forEach(function (b) { b.onclick = function () { S.who = b.dataset.go; window.scrollTo(0, 0); render(); }; });
   if (anyAll) loadIO(n);
