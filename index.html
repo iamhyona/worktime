@@ -62,6 +62,33 @@ header { position:sticky; top:0; z-index:10; background:var(--bg); padding:calc(
 .row .wk.no { background:none; color:var(--faint); }
 .row .msg { grid-column:2 / -2; }
 .row .ap { display:flex; gap:3px; justify-content:flex-end; }
+.seg { display:inline-flex; background:#e5e8eb; border-radius:999px; padding:3px; margin-right:4px; }
+.seg button { width:auto !important; height:26px !important; border-radius:999px !important; padding:0 12px !important; background:transparent !important; font-size:13px; font-weight:700; color:var(--mute) !important; }
+.seg button.on { background:#fff !important; color:var(--txt) !important; }
+.cal { padding:12px 10px 8px; }
+.cwh, .cwk { display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:3px; }
+.cwh { font-size:11px; font-weight:700; color:var(--mute); text-align:center; padding-bottom:6px; }
+.cwh .we { color:var(--faint); }
+.cd { position:relative; border:0; border-radius:10px; background:var(--chip); padding:5px 0 6px; min-height:58px; display:flex; flex-direction:column; align-items:center; gap:1px; font-variant-numeric:tabular-nums; letter-spacing:-0.04em; }
+.cd.blank { background:none; }
+.cd em { font-style:normal; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:2px; }
+.cd i { font-style:normal; font-size:11.5px; font-weight:800; color:var(--txt); line-height:1.25; }
+.cd i.o { color:var(--sub); font-weight:700; }
+.cd.off { background:#f9fafb; } .cd.off i { color:var(--faint); font-weight:500; }
+.cd.we em { color:var(--faint); }
+.cd.oth { opacity:.45; }
+.cd.today { box-shadow:inset 0 0 0 1.5px var(--blue); } .cd.today em { color:var(--blue); }
+.cd u { position:absolute; top:5px; right:5px; width:4px; height:4px; border-radius:50%; background:var(--org); }
+.cwt { display:flex; justify-content:flex-end; padding:4px 0 8px; min-height:8px; }
+.cwt .wk { font-size:11px; font-weight:800; border-radius:6px; padding:2px 6px; background:var(--chip); color:var(--sub); }
+.cwt .wk.warn { background:#fff4e6; color:var(--org); } .cwt .wk.over { background:#fdecee; color:var(--red); }
+.drow, .dgh { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:0 6px; align-items:center; width:100%; border:0; background:none; text-align:center; padding:11px 0; border-top:1px solid #f2f4f6; font-variant-numeric:tabular-nums; }
+.dgh { padding:0 0 6px; border-top:0; font-size:11px; font-weight:700; color:var(--mute); }
+.dgh span:first-child, .drow b { text-align:left; }
+.drow b { font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.drow .c { font-weight:700; font-size:15px; }
+.drow .c.wk { font-size:13px; color:var(--sub); font-weight:600; }
+.drow .c.e { color:var(--faint); font-weight:500; }
 .dot { width:8px; height:8px; border-radius:50%; background:#e5e8eb; display:inline-block; }
 .dot.on { background:var(--blue); }
 .appr { display:flex; gap:6px; margin:4px 0 12px; flex-wrap:wrap; }
@@ -141,7 +168,7 @@ function call(fn) {
 }
 function errMsg(e) { return String(e && e.message || e).replace(/^(Exception|Error):\s*/, ''); }
 var ALL = '전체';
-var S = { pin: ls.get('wt:pin') || '', me: null, team: '', who: '', ym: '', cache: {}, teamCache: {} };
+var S = { view: ls.get('wt:view') === 'c' ? 'c' : 'w', pin: ls.get('wt:pin') || '', me: null, team: '', who: '', ym: '', cache: {}, teamCache: {} };
 
 /* 로그인 */
 function showLogin(msg) {
@@ -177,16 +204,27 @@ function shell(inner) {
     '<button class="ib" id="rf" aria-label="동기화">' + IC_RF + '</button><button class="ib" id="lo" aria-label="나가기">' + IC_OUT + '</button></div>';
   if (me.admin && T.length > 1) h += '<div class="tabs" id="tT">' + [ALL].concat(T).map(function (t) { return '<button data-t="' + esc(t) + '" class="' + (t === S.team ? 'on' : '') + '">' + esc(t) + '</button>'; }).join('') + '</div>';
   h += '<div class="tabs" id="tP"><button data-p="" class="' + (S.who ? '' : 'on') + '">' + (S.team === ALL ? '모두 보기' : '팀 전체') + '</button>' + P.slice().sort(function (x, y) { return String(x.name).localeCompare(String(y.name), 'ko'); }).map(function (p) { return '<button data-p="' + p.id + '" class="' + (p.id === S.who ? 'on' : '') + '">' + esc(p.name) + '</button>'; }).join('') + '</div></header>';
-  h += '<div class="wrap"><div class="mon"><b>' + (S.ym === today().slice(0, 7) ? today().replace(/-/g, '.') + ' <small style="font-size:15px;color:var(--mute);font-weight:700">' + WK[wd(today())] + '</small>' : S.ym.replace('-', '.')) + '</b><button id="mP" aria-label="이전 달"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button id="mN" aria-label="다음 달"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>' + inner + '</div>';
+  var cal = S.view === 'c';
+  h += '<div class="wrap"><div class="mon"><b>' + (S.ym === today().slice(0, 7) ? today().replace(/-/g, '.') + ' <small style="font-size:15px;color:var(--mute);font-weight:700">' + WK[wd(today())] + '</small>' : S.ym.replace('-', '.')) + '</b>' +
+    '<span class="seg" id="mSeg"><button data-m="w" class="' + (cal ? '' : 'on') + '">주별</button><button data-m="c" class="' + (cal ? 'on' : '') + '">캘린더</button></span>' +
+    '<button id="mP" aria-label="이전"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button id="mN" aria-label="다음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>' + inner + '</div>';
   $('#app').innerHTML = h;
   $('#rf').onclick = function () { S.cache = {}; S.teamCache = {}; render(); toast('새로 불러왔어요'); };
   $('#lo').onclick = function () { ls.set('wt:pin', null); S.pin = ''; S.me = null; showLogin(); };
   $$('#tT button').forEach(function (b) { b.onclick = function () { S.team = b.dataset.t; S.who = ''; render(); }; });
-  $$('#tP button').forEach(function (b) { b.onclick = function () { S.who = b.dataset.p; window.scrollTo(0, 0); render(); }; });
-  $('#mP').onclick = function () { ymMove(-1); render(); };
-  $('#mN').onclick = function () { ymMove(1); render(); };
+  $$('#tP button').forEach(function (b) { b.onclick = function () { S.who = b.dataset.p; if (!S.who) { S.view = 'w'; ls.set('wt:view', 'w'); } window.scrollTo(0, 0); render(); }; });
+  var mv = function (n) { ymMove(n); render(); };
+  $('#mP').onclick = function () { mv(-1); };
+  $('#mN').onclick = function () { mv(1); };
+  $$('#mSeg button').forEach(function (b) { b.onclick = function () { S.view = b.dataset.m; ls.set('wt:view', S.view); render(); }; });
 }
-function render() { if (!S.me) return; return S.who ? renderPerson() : renderTeam(); }
+function sortedPeople() { return people().slice().sort(function (x, y) { return String(x.name).localeCompare(String(y.name), 'ko'); }); }
+function render() {
+  if (!S.me) return;
+  if (S.view === 'c') { if (!S.who) { var sp = sortedPeople(); if (!sp.length) return renderTeam(); S.who = sp[0].id; } return renderCal(); }
+  return S.who ? renderPerson() : renderTeam();
+}
+function dAdd(d, n) { var a = d.split('-'), x = new Date(+a[0], a[1] - 1, +a[2] + n); return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); }
 function fmtH(t) { var m = String(t || '').match(/(\d+)시간\s*(\d+)?/); if (!m) return t || ''; var mm = +(m[2] || 0); return m[1] + 'h' + (mm ? pad(mm) : ''); }
 function pillFor(tot, over) {
   var h = hours(tot), o = hours(over);
@@ -233,17 +271,17 @@ function renderTeam() {
     var L = S.teamCache[t + '|' + S.ym].people || [], any = L.some(function (p) { return p.weeks && p.weeks.length; });
     if (any) anyAll = true;
     return '<div class="card" style="--n:' + n + '"><div class="ch"><b>' + esc(t) + '</b><small>' + L.length + '명</small></div>' +
-      (any ? '<div class="gh"><span>출근–퇴근</span>' + WL.map(function (l, i) { return '<span data-wl="' + i + '">' + l + '</span>'; }).join('') + '<span>결재</span></div>' +
+      (any ? '<div class="gh"><span>이름</span>' + WL.map(function (l, i) { return '<span data-wl="' + i + '">' + l + '</span>'; }).join('') + '<span>결재</span></div>' +
         L.map(function (p) {
-          var io = ioHtml(p.id), cells = '';
+          var cells = '';
           if (p.err) cells = '<span class="wk over msg">읽기 실패</span>';
           else if (!p.weeks || !p.weeks.length) cells = '<span class="wk no msg">탭 없음</span>';
           else for (var i = 0; i < n; i++) cells += wkCell(p.weeks[i]);
-          return '<button class="row" data-go="' + p.id + '"><span class="nm"><b>' + esc(p.name) + '<small data-dt="' + p.id + '">' + esc(io.dt) + '</small></b><i data-io="' + p.id + '" class="' + (io.e ? 'e' : '') + '">' + esc(io.t) + '</i></span>' + cells +
+          return '<button class="row" data-go="' + p.id + '"><span class="nm"><b>' + esc(p.name) + '</b></span>' + cells +
             '<span class="ap">' + [0, 1, 2].map(function (i) { return '<i class="dot' + (p.appr && p.appr[i] ? ' on' : '') + '"></i>'; }).join('') + '</span></button>';
         }).join('') : '<div class="empty">' + S.ym.replace('-', '년 ').replace(/$/, '월') + ' 근무표 탭이 없어요</div>') + '</div>';
   }).join('');
-  h += '<p class="note">주 칸은 그 주 총 근무시간이에요(48시간 넘으면 주황, 52시간 넘으면 빨강). 이름 밑 시각은 오늘(' + md(today()) + ') 출근–퇴근이에요. 파란 점은 결재(부서장 · 본부장 · 인사팀)예요.</p>';
+  h += '<p class="note">주 칸은 그 주 총 근무시간이에요(48시간 넘으면 주황, 52시간 넘으면 빨강). 캘린더를 누르면 날짜별 출근·퇴근 시각을 볼 수 있어요. 파란 점은 결재(부서장 · 본부장 · 인사팀)예요.</p>';
   shell(h);
   $$('[data-go]').forEach(function (b) { b.onclick = function () { S.who = b.dataset.go; window.scrollTo(0, 0); render(); }; });
   if (anyAll) loadIO(n);
@@ -254,8 +292,6 @@ function loadIO(n) {
   var ym = S.ym, gen = ++IOQ.gen, ids = people().map(function (p) { return p.id; }).filter(function (id) { return !S.cache[id + '|' + ym]; });
   var paint = function (id) {
     if (S.who || S.ym !== ym) return;
-    var io = ioHtml(id), a = document.querySelector('[data-io="' + id + '"]'), b = document.querySelector('[data-dt="' + id + '"]');
-    if (a) { a.textContent = io.t; a.className = io.e ? 'e' : ''; } if (b) b.textContent = io.dt;
     var WL = weekLabels(n); $$('[data-wl]').forEach(function (el) { el.textContent = WL[+el.dataset.wl]; });
   };
   var next = function () {
@@ -265,6 +301,33 @@ function loadIO(n) {
       .then(function () { paint(id); next(); });
   };
   for (var k = 0; k < 4; k++) next();
+}
+/* 캘린더: 날짜·요일별 출근·퇴근 시각 */
+function renderCal() {
+  var key = S.who + '|' + S.ym, d = S.cache[key];
+  if (!d) {
+    shell('<div class="ld">불러오는 중…</div>');
+    var who = S.who, ym = S.ym;
+    call('appWtGet', S.pin, who, ym).then(function (x) { S.cache[who + '|' + x.ym] = x; if (x.ym !== ym) S.cache[who + '|' + ym] = x; if (S.who === who && S.ym === ym && S.view === 'c') renderCal(); })
+      .catch(function (e) { shell('<div class="empty">' + esc(errMsg(e)) + '</div>'); });
+    return;
+  }
+  var t = today(), h;
+  if (d.ym !== S.ym || !d.weeks.length) h = '<div class="card"><div class="empty">' + S.ym.replace('-', '년 ') + '월 근무표 탭이 없어요</div></div>';
+  else {
+    h = '<div class="card cal"><div class="cwh">' + WK.map(function (w, i) { return '<span class="' + (i === 0 || i === 6 ? 'we' : '') + '">' + w + '</span>'; }).join('') + '</div>' +
+      d.weeks.map(function (w, wi) {
+        return '<div class="cwk">' + w.days.map(function (x, k) {
+          if (!x.d) return '<span class="cd blank"></span>';
+          var dw = wd(x.d), oth = x.d.slice(0, 7) !== S.ym, e = !(x.i || x.o);
+          return '<button class="cd' + (x.d === t ? ' today' : '') + (oth ? ' oth' : '') + (dw === 0 || dw === 6 ? ' we' : '') + (e ? ' off' : '') + '" data-w="' + wi + '" data-k="' + k + '">' +
+            '<em>' + (+x.d.slice(8)) + '</em>' + (e ? '<i>–</i>' : '<i>' + (hm(x.i) || '–') + '</i><i class="o">' + (hm(x.o) || '–') + '</i>') + (x.rs ? '<u></u>' : '') + '</button>';
+        }).join('') + '</div><div class="cwt">' + (w.tot && hours(w.tot) ? '<span class="wk' + (hours(w.over) > 0 ? ' over' : hours(w.tot) > 48 ? ' warn' : '') + '">주 ' + esc(fmtH(w.tot)) + '</span>' : '') + '</div>';
+      }).join('') + '</div>';
+  }
+  h += '<p class="note">칸마다 위가 출근, 아래가 퇴근 시각이에요. 날짜를 누르면 고칠 수 있어요. 점은 야근 사유가 있는 날이에요.</p>';
+  shell(h);
+  $$('.cd[data-w]').forEach(function (b) { b.onclick = function () { openEd(d, +b.dataset.w, +b.dataset.k); }; });
 }
 function renderPerson() {
   var key = S.who + '|' + S.ym, d = S.cache[key];
@@ -330,7 +393,7 @@ $('#edGo').onclick = function () {
   if (!!i !== !!o) return toast('출근과 퇴근을 둘 다 적거나 둘 다 비워 주세요');
   var b = $('#edGo'); b.classList.add('busy');
   call('appWtSet', S.pin, { id: d.id, ym: d.ym, row: w.row, k: ED.k, i: i, o: o, dn: ED.dn, rs: $('#edR').value.trim() }).then(function (r) {
-    d.weeks = r.weeks; d.appr = r.appr; S.teamCache = {}; closeEd(); renderPerson(); toast('근무표에 저장했어요');
+    d.weeks = r.weeks; d.appr = r.appr; S.teamCache = {}; closeEd(); render(); toast('근무표에 저장했어요');
   }).catch(function (e) { toast(errMsg(e)); }).then(function () { b.classList.remove('busy'); });
 };
 
